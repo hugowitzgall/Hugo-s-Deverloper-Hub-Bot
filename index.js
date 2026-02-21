@@ -16,7 +16,7 @@ const {
 // HIER DEINE DATEN EINTRAGEN
 // ========================
 
-const TOKEN = "MTQ3NDg2NzEwMjkyOTEyNTQ4OQ.GXYZqn.jISS4WUmU4INAwXsu_Ef8gg1aZckRcEVuYnejU";
+const TOKEN = process.env.TOKEN;
 const CLIENT_ID = "1474867102929125489";
 const GUILD_ID = "1474737014732493012";
 const CATEGORY_ID = "1474868652896555080";

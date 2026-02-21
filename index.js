@@ -79,9 +79,9 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.commandName === "panel") {
 
       const embed = new EmbedBuilder()
-        .setTitle("🎫 Support Ticket")
-        .setDescription("Wähle dein Thema")
-        .setColor("Blue");
+  .setTitle("🛍️ Kaufanfrage Ticket")
+  .setDescription("Wähle deinen Service")
+  .setColor("Blue");
 
 
       const menu = new StringSelectMenuBuilder()
@@ -181,6 +181,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 
 });
+
 
 
 client.login(TOKEN);

@@ -86,7 +86,7 @@ client.on("interactionCreate", async (interaction) => {
 
       const menu = new StringSelectMenuBuilder()
         .setCustomId("ticket_select")
-        .setPlaceholder("Thema auswählen")
+        .setPlaceholder("Service auswählen")
         .addOptions([
           {
             label: "Bot Erstellung",
@@ -185,3 +185,4 @@ client.on("interactionCreate", async (interaction) => {
 
 
 client.login(TOKEN);
+

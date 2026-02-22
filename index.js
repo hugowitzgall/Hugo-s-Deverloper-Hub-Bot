@@ -218,9 +218,16 @@ async function createTicket(interaction, serviceName, categoryID, isSupport = fa
 
 client.on("interactionCreate", async interaction => {
 
+  // ========================
+  // SLASH COMMANDS
+  // ========================
+
   if (interaction.isChatInputCommand()) {
 
-    if (!isLeitung(interaction.member)) {
+    if (
+      interaction.commandName !== "support-ticket" &&
+      !isLeitung(interaction.member)
+    ) {
       return interaction.reply({
         content: "❌ Nur Leitungsebene darf diesen Command benutzen",
         ephemeral: true
@@ -229,15 +236,33 @@ client.on("interactionCreate", async interaction => {
 
 
     // ========================
-    // KAUF PANEL
+    // KAUF PANEL (ALT)
     // ========================
 
     if (interaction.commandName === "panel") {
 
+      const prices = loadPrices();
+
       const embed = new EmbedBuilder()
-        .setTitle("🛍️ Kaufanfrage")
-        .setDescription("Service auswählen")
-        .setColor("Blue");
+        .setTitle("💰 Preise")
+        .setColor("Blue")
+        .setDescription(`
+🤖 **Bot Einrichtung**
+Erstellung & Konfiguration eines individuellen Discord Bots
+💵 Preis: ${prices.bot}
+
+⚙️ **Server Einrichtung**
+Komplettes Server Setup
+💵 Preis: ${prices.server}
+
+🔥 **Bundle**
+Bot + Server kombiniert
+💵 Preis: ${prices.bundle}
+
+⭐ **Extras**
+Zusatzfunktionen & Wünsche
+💵 Preis: ${prices.extras}
+`);
 
       const menu = new StringSelectMenuBuilder()
         .setCustomId("select_service")
@@ -257,7 +282,7 @@ client.on("interactionCreate", async interaction => {
 
 
     // ========================
-    // VIP PANEL
+    // VIP PANEL (ALT)
     // ========================
 
     if (interaction.commandName === "vip") {
@@ -284,10 +309,8 @@ Button drücken zum öffnen.
       );
 
       interaction.reply({
-
         embeds: [embed],
         components: [button]
-
       });
 
     }
@@ -327,7 +350,7 @@ Button drücken zum öffnen.
 
 
     // ========================
-    // PREISE
+    // PREISE BEARBEITEN
     // ========================
 
     if (interaction.commandName === "preise") {
@@ -376,7 +399,7 @@ Button drücken zum öffnen.
 
 
   // ========================
-  // SUPPORT BUTTONS
+  // BUTTONS
   // ========================
 
   if (interaction.isButton()) {
@@ -398,7 +421,6 @@ Button drücken zum öffnen.
       logChannel.send({
 
         embeds: [
-
           new EmbedBuilder()
             .setTitle("❌ Ticket geschlossen")
             .addFields(
@@ -406,7 +428,6 @@ Button drücken zum öffnen.
               { name: "Channel", value: interaction.channel.name }
             )
             .setColor("Red")
-
         ]
 
       });
@@ -418,6 +439,10 @@ Button drücken zum öffnen.
   }
 
 
+  // ========================
+  // SELECT MENU
+  // ========================
+
   if (interaction.isStringSelectMenu()) {
 
     if (interaction.customId === "select_service")
@@ -425,6 +450,10 @@ Button drücken zum öffnen.
 
   }
 
+
+  // ========================
+  // MODAL SUBMIT
+  // ========================
 
   if (interaction.isModalSubmit()) {
 
@@ -441,57 +470,10 @@ Button drücken zum öffnen.
 
       savePrices(data);
 
-      const embed = new EmbedBuilder()
-  .setTitle("💰 Unsere Preise")
-  .setColor("Blue")
-  .setDescription(`
-━━━━━━━━━━━━━━━━━━━━━━
-
-🤖 **Bot Einrichtung**
-Erstellung & Konfiguration eines individuellen Discord Bots  
-• Commands  
-• Moderation  
-• Systeme  
-• Wunschfunktionen  
-
-💵 **Preis:** ${data.bot}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-⚙️ **Server Einrichtung**
-Komplettes Server Setup  
-• Rollenstruktur  
-• Kategorien  
-• Sicherheit  
-• Permissions  
-
-💵 **Preis:** ${data.server}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-🔥 **Bundle (Bot + Server)**
-Komplettpaket mit Rabatt  
-Ideal für neue Communities  
-
-💵 **Preis:** ${data.bundle}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-⭐ **Extras**
-Individuelle Zusatzfunktionen  
-• Spezialfeatures  
-• Erweiterungen  
-• Custom Wünsche  
-
-💵 **Preis:** ${data.extras}
-
-━━━━━━━━━━━━━━━━━━━━━━
-`);
-
-interaction.reply({
-  content: "✅ Preise gespeichert und Panel aktualisiert",
-  embeds: [embed]
-});
+      interaction.reply({
+        content: "✅ Preise gespeichert",
+        ephemeral: true
+      });
 
     }
 

@@ -32,7 +32,7 @@ const client = new Client({
 });
 
 client.once("ready", () => {
-  console.log(`✅ Bot ist online als ${client.user.tag}`);
+  console.log("Bot ist online!");
 });
 
 
@@ -49,10 +49,16 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName("vip-panel")
-    .setDescription("Sendet das VIP Kaufanfrage Panel")
+    .setDescription("Sendet das VIP Panel")
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("preise")
+    .setDescription("Sendet die Preisliste")
     .toJSON(),
 
 ];
+
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
@@ -64,7 +70,7 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
       { body: commands }
     );
 
-    console.log("✅ Slash Commands registriert");
+    console.log("Slash Commands registriert");
 
   } catch (error) {
     console.log(error);
@@ -78,8 +84,9 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 client.on("interactionCreate", async (interaction) => {
 
+
   // ========================
-  // NORMAL PANEL COMMAND
+  // KAUFANFRAGE PANEL
   // ========================
 
   if (interaction.isChatInputCommand()) {
@@ -87,33 +94,25 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.commandName === "panel") {
 
       const embed = new EmbedBuilder()
-        .setTitle("🛍️ Kaufanfrage Panel")
-        .setDescription(
-          "Willkommen im Kaufbereich!\n\n" +
-          "Wähle unten den Service aus, den du kaufen möchtest.\n\n" +
-          "💰 **Bundle Preis:** 18-22€\n\n" +
-          "Nach Auswahl wird automatisch ein Ticket erstellt."
-        )
-        .setColor("#2b6cff")
-        .setFooter({ text: "Support antwortet schnellstmöglich" });
+        .setTitle("🛍️ Kaufanfrage Ticket")
+        .setDescription("Wähle deinen Service aus dem Menü")
+        .setColor("Blue");
+
 
       const menu = new StringSelectMenuBuilder()
         .setCustomId("ticket_select")
         .setPlaceholder("Service auswählen")
         .addOptions([
           {
-            label: "Bot Erstellung",
-            description: "Individueller Discord Bot",
+            label: "🤖 Bot Einrichtung",
             value: "bot"
           },
           {
-            label: "Server Einrichtung",
-            description: "Komplette Server Einrichtung",
+            label: "⚙️ Server Einrichtung",
             value: "server"
           },
           {
-            label: "Bot + Server Bundle",
-            description: "Komplettes Bundle für 18-22€",
+            label: "🔥 Server + Bot Einrichtung",
             value: "bundle"
           }
         ]);
@@ -129,36 +128,23 @@ client.on("interactionCreate", async (interaction) => {
 
 
     // ========================
-    // VIP PANEL COMMAND
+    // VIP PANEL
     // ========================
 
     if (interaction.commandName === "vip-panel") {
 
       const embed = new EmbedBuilder()
-        .setTitle("💎 VIP Bundle Kaufanfrage")
-        .setDescription(
-          "**Preis: 25€**\n\n" +
+        .setTitle("👑 VIP Anfrage Ticket")
+        .setDescription("Erstelle ein Ticket für das VIP Bundle")
+        .setColor("Gold");
 
-          "**VIP Vorteile:**\n" +
-          "• Komplett individueller Bot\n" +
-          "• Professionelle Server Einrichtung\n" +
-          "• Prioritäts Support\n" +
-          "• Exklusive VIP Features\n" +
-          "• Schnellere Fertigstellung\n" +
-          "• Anpassungen nach Wunsch\n\n" +
-
-          "Wähle unten aus, um ein VIP Ticket zu erstellen."
-        )
-        .setColor("#ffd700")
-        .setFooter({ text: "VIP Kunden erhalten Priorität" });
 
       const menu = new StringSelectMenuBuilder()
-        .setCustomId("vip_ticket_select")
-        .setPlaceholder("VIP Anfrage starten")
+        .setCustomId("vip_select")
+        .setPlaceholder("VIP auswählen")
         .addOptions([
           {
-            label: "VIP Bundle kaufen (25€)",
-            description: "VIP Bot + Server + exklusive Vorteile",
+            label: "👑 VIP Bundle kaufen",
             value: "vip"
           }
         ]);
@@ -172,20 +158,87 @@ client.on("interactionCreate", async (interaction) => {
 
     }
 
+
+    // ========================
+    // PREISE EMBED
+    // ========================
+
+    if (interaction.commandName === "preise") {
+
+      const embed = new EmbedBuilder()
+        .setColor("Blue")
+        .setTitle("💰 Preise")
+        .setDescription(
+`**🤖 Bot Einrichtung**
+💶 Preis: 3€ – 8€
+📦 Beinhaltet:
+• 🎫 Ticket System
+• 🛡️ Moderations Commands
+• ⚙️ Custom Commands
+• 👥 Rollen & Permissions Integration
+• ✅ Fertig eingerichteter Bot
+
+━━━━━━━━━━━━━━━━━━━━
+
+**⚙️ Server Einrichtung**
+💶 Preis: 3€ – 8€
+📦 Beinhaltet:
+• 📁 Kategorien & Channels Setup
+• 👥 Rollen System
+• 🔒 Permissions Setup
+• 🎨 Übersichtliches & sauberes Design
+• ✅ Komplett fertiger Server
+
+━━━━━━━━━━━━━━━━━━━━
+
+**🔥 Server + Bot Einrichtung**
+💶 Preis: 18€ – 22€
+📦 Beinhaltet:
+• ⚙️ Komplettes Server Setup
+• 🤖 Komplettes Bot Setup
+• 🔗 Perfekt aufeinander abgestimmt
+• 🚀 Sofort einsatzbereit
+• ⭐ Beste Wahl für Communities
+
+━━━━━━━━━━━━━━━━━━━━
+
+**⭐ Extras**
+• ⚙️ Extra Commands → +2€
+• 🔧 Zusätzliche Features → +2€ – 5€
+• ⚡ Priorität → +3€
+
+━━━━━━━━━━━━━━━━━━━━
+
+📩 **Bestellung**
+Öffne ein Ticket unter:
+🛍️ 『𝑲𝒂𝒖𝒇-𝒂𝒏𝒇𝒓𝒂𝒈𝒆』
+
+⚡ Schnelle Bearbeitung  
+🔒 Zuverlässiger Service  
+💬 Support jederzeit verfügbar`
+        );
+
+      await interaction.reply({
+        embeds: [embed]
+      });
+
+    }
+
   }
 
 
   // ========================
-  // NORMAL TICKET ERSTELLUNG
+  // NORMAL TICKET ERSTELLEN
   // ========================
 
   if (interaction.isStringSelectMenu()) {
 
     if (interaction.customId === "ticket_select") {
 
-      const thema = interaction.values[0];
+      const service = interaction.values[0];
 
       const channel = await interaction.guild.channels.create({
+
         name: `ticket-${interaction.user.username}`,
         type: ChannelType.GuildText,
         parent: CATEGORY_ID,
@@ -219,19 +272,18 @@ client.on("interactionCreate", async (interaction) => {
 
       });
 
+
       const embed = new EmbedBuilder()
-        .setTitle("🎫 Kaufanfrage Ticket")
-        .setDescription(
-          `**Service:** ${thema}\n\n` +
-          "Das Team wird dir bald antworten.\n\n" +
-          "Bitte beschreibe genau, was du möchtest."
-        )
-        .setColor("#00b300");
+        .setTitle("🎫 Ticket erstellt")
+        .setDescription(`Service: ${service}`)
+        .setColor("Green");
+
 
       await channel.send({
-        content: `<@${interaction.user.id}> <@&${TEAM_ROLE_ID}>`,
+        content: `<@${interaction.user.id}>`,
         embeds: [embed],
       });
+
 
       await interaction.reply({
         content: `✅ Ticket erstellt: ${channel}`,
@@ -242,12 +294,13 @@ client.on("interactionCreate", async (interaction) => {
 
 
     // ========================
-    // VIP TICKET ERSTELLUNG
+    // VIP TICKET ERSTELLEN
     // ========================
 
-    if (interaction.customId === "vip_ticket_select") {
+    if (interaction.customId === "vip_select") {
 
       const channel = await interaction.guild.channels.create({
+
         name: `vip-${interaction.user.username}`,
         type: ChannelType.GuildText,
         parent: CATEGORY_ID,
@@ -281,22 +334,21 @@ client.on("interactionCreate", async (interaction) => {
 
       });
 
+
       const embed = new EmbedBuilder()
-        .setTitle("💎 VIP Ticket erstellt")
-        .setDescription(
-          "**VIP Bundle Anfrage (25€)**\n\n" +
-          "Danke für dein Interesse am VIP Bundle!\n\n" +
-          "Ein Teammitglied wird sich mit höchster Priorität um dich kümmern."
-        )
-        .setColor("#ffd700");
+        .setTitle("👑 VIP Ticket erstellt")
+        .setDescription("VIP Anfrage wurde erstellt")
+        .setColor("Gold");
+
 
       await channel.send({
-        content: `<@${interaction.user.id}> <@&${TEAM_ROLE_ID}>`,
+        content: `<@${interaction.user.id}>`,
         embeds: [embed],
       });
 
+
       await interaction.reply({
-        content: `💎 VIP Ticket erstellt: ${channel}`,
+        content: `👑 VIP Ticket erstellt: ${channel}`,
         ephemeral: true,
       });
 
@@ -306,5 +358,5 @@ client.on("interactionCreate", async (interaction) => {
 
 });
 
-client.login(TOKEN);
 
+client.login(TOKEN);

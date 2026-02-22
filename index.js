@@ -37,7 +37,7 @@ client.once("ready", () => {
 
 
 // ========================
-// PREISE SPEICHER SYSTEM
+// PREISE SYSTEM
 // ========================
 
 function loadPrices() {
@@ -45,12 +45,10 @@ function loadPrices() {
   if (!fs.existsSync("preise.json")) {
 
     const defaultPrices = {
-
       bot: "3€ – 8€",
       server: "3€ – 8€",
       bundle: "18€ – 22€",
       extras: "2€ – 5€"
-
     };
 
     fs.writeFileSync("preise.json", JSON.stringify(defaultPrices, null, 2));
@@ -59,19 +57,14 @@ function loadPrices() {
   }
 
   return JSON.parse(fs.readFileSync("preise.json"));
-
 }
 
 function savePrices(data) {
-
   fs.writeFileSync("preise.json", JSON.stringify(data, null, 2));
-
 }
 
 function isLeitung(member) {
-
   return member.roles.cache.has(LEITUNG_ROLE_ID);
-
 }
 
 
@@ -95,18 +88,14 @@ const commands = [
 
 ].map(cmd => cmd.toJSON());
 
-
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 (async () => {
-
   await rest.put(
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
-
   console.log("✅ Slash Commands registriert");
-
 })();
 
 
@@ -117,20 +106,16 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 async function createTicket(interaction, serviceName) {
 
   if (!interaction.member.roles.cache.has(SERVER_MITGLIED_ROLE_ID)) {
-
     return interaction.reply({
       content: "❌ Du hast keine Berechtigung.",
       ephemeral: true
     });
-
   }
 
   const channel = await interaction.guild.channels.create({
 
     name: `ticket-${interaction.user.username}`,
-
     type: ChannelType.GuildText,
-
     parent: CATEGORY_ID,
 
     permissionOverwrites: [
@@ -190,7 +175,6 @@ async function createTicket(interaction, serviceName) {
   const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
 
   logChannel.send({
-
     embeds: [
       new EmbedBuilder()
         .setTitle("📁 Ticket erstellt")
@@ -201,7 +185,6 @@ async function createTicket(interaction, serviceName) {
         )
         .setColor("Blue")
     ]
-
   });
 
   interaction.reply({
@@ -218,19 +201,13 @@ async function createTicket(interaction, serviceName) {
 
 client.on("interactionCreate", async interaction => {
 
-  // ========================
-  // SLASH COMMANDS
-  // ========================
-
   if (interaction.isChatInputCommand()) {
 
     if (!isLeitung(interaction.member)) {
-
       return interaction.reply({
         content: "❌ Nur Leitungsebene darf diesen Command benutzen",
         ephemeral: true
       });
-
     }
 
     // PANEL
@@ -265,7 +242,14 @@ client.on("interactionCreate", async interaction => {
 
       const embed = new EmbedBuilder()
         .setTitle("👑 VIP Bundle")
-        .setDescription("VIP Bundle kaufen")
+        .setDescription(`
+✨ Priorisierte Bearbeitung  
+⚡ Schnellere Umsetzung  
+🎁 Exklusive Features  
+🛡️ Premium Support  
+
+Drücke den Button um ein VIP Ticket zu öffnen.
+`)
         .setColor("Gold");
 
       const button = new ActionRowBuilder()
@@ -296,7 +280,7 @@ client.on("interactionCreate", async interaction => {
         new ActionRowBuilder().addComponents(
           new TextInputBuilder()
             .setCustomId("bot")
-            .setLabel("Bot Preis")
+            .setLabel("Bot Einrichtung Preis")
             .setStyle(TextInputStyle.Short)
             .setRequired(true)
         ),
@@ -304,7 +288,7 @@ client.on("interactionCreate", async interaction => {
         new ActionRowBuilder().addComponents(
           new TextInputBuilder()
             .setCustomId("server")
-            .setLabel("Server Preis")
+            .setLabel("Server Einrichtung Preis")
             .setStyle(TextInputStyle.Short)
             .setRequired(true)
         ),
@@ -328,46 +312,44 @@ client.on("interactionCreate", async interaction => {
       );
 
       interaction.showModal(modal);
-
     }
-
   }
 
 
-  // ========================
   // MODAL SUBMIT
-  // ========================
-
   if (interaction.isModalSubmit()) {
 
     if (interaction.customId === "preise_modal") {
 
       const data = {
-
         bot: interaction.fields.getTextInputValue("bot"),
         server: interaction.fields.getTextInputValue("server"),
         bundle: interaction.fields.getTextInputValue("bundle"),
         extras: interaction.fields.getTextInputValue("extras")
-
       };
 
       savePrices(data);
 
       const embed = new EmbedBuilder()
+        .setTitle("💰 Unsere Preise")
+        .setColor("Blue")
+        .setDescription(`
+🤖 **Bot Einrichtung**  
+Individuelle Bot Konfiguration, Commands, Systeme  
+💵 Preis: ${data.bot}
 
-        .setTitle("💰 Preise")
-        .setDescription(
+⚙️ **Server Einrichtung**  
+Komplettes Server Setup mit Rollen & Struktur  
+💵 Preis: ${data.server}
 
-`🤖 Bot Einrichtung: ${data.bot}
+🔥 **Bundle (Bot + Server)**  
+Kombipaket mit Rabatt  
+💵 Preis: ${data.bundle}
 
-⚙️ Server Einrichtung: ${data.server}
-
-🔥 Bundle: ${data.bundle}
-
-⭐ Extras: ${data.extras}`
-
-        )
-        .setColor("Blue");
+⭐ **Extras**  
+Individuelle Zusatzfunktionen  
+💵 Preis: ${data.extras}
+`);
 
       interaction.reply({
         embeds: [embed]
@@ -378,31 +360,17 @@ client.on("interactionCreate", async interaction => {
   }
 
 
-  // ========================
-  // SELECT MENU
-  // ========================
-
   if (interaction.isStringSelectMenu()) {
-
     if (interaction.customId === "select_service") {
-
       createTicket(interaction, interaction.values[0]);
-
     }
-
   }
 
-
-  // ========================
-  // VIP BUTTON
-  // ========================
 
   if (interaction.isButton()) {
 
     if (interaction.customId === "vip_ticket") {
-
       createTicket(interaction, "VIP Bundle");
-
     }
 
     if (interaction.customId === "close_ticket") {
@@ -410,7 +378,6 @@ client.on("interactionCreate", async interaction => {
       const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
 
       logChannel.send({
-
         embeds: [
           new EmbedBuilder()
             .setTitle("❌ Ticket geschlossen")
@@ -420,16 +387,13 @@ client.on("interactionCreate", async interaction => {
             )
             .setColor("Red")
         ]
-
       });
 
       interaction.channel.delete();
-
     }
 
   }
 
 });
-
 
 client.login(TOKEN);

@@ -13,11 +13,6 @@ const {
   Routes
 } = require("discord.js");
 
-
-// ========================
-// ENV VARIABLES
-// ========================
-
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
@@ -25,11 +20,6 @@ const CATEGORY_ID = process.env.CATEGORY_ID;
 const TEAM_ROLE_ID = process.env.TEAM_ROLE_ID;
 const MEMBER_ROLE_ID = process.env.MEMBER_ROLE_ID;
 const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID;
-
-
-// ========================
-// CLIENT
-// ========================
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
@@ -41,7 +31,7 @@ client.once("clientReady", () => {
 
 
 // ========================
-// SLASH COMMANDS
+// SLASH COMMANDS (NUR ADMIN)
 // ========================
 
 const commands = [
@@ -69,16 +59,12 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 (async () => {
-
   console.log("🔄 Registriere Slash Commands...");
-
   await rest.put(
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
-
   console.log("✅ Slash Commands registriert");
-
 })();
 
 
@@ -86,11 +72,11 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 // TICKET CREATE FUNCTION
 // ========================
 
-async function createTicket(interaction, type, serviceName) {
+async function createTicket(interaction, type, service) {
 
   if (!interaction.member.roles.cache.has(MEMBER_ROLE_ID)) {
     return interaction.reply({
-      content: "❌ Du hast keine Berechtigung!",
+      content: "❌ Du benötigst die Rolle 'Server Mitglied' um ein Ticket zu öffnen.",
       ephemeral: true
     });
   }
@@ -123,23 +109,17 @@ async function createTicket(interaction, type, serviceName) {
     ]
   });
 
-
   const closeButton = new ButtonBuilder()
-    .setCustomId(`close_${interaction.user.id}_${serviceName}`)
+    .setCustomId(`close_${interaction.user.id}_${service}`)
     .setLabel("🔒 Ticket schließen")
     .setStyle(ButtonStyle.Danger);
 
   const row = new ActionRowBuilder().addComponents(closeButton);
 
-
   const embed = new EmbedBuilder()
     .setTitle("🎫 Ticket erstellt")
     .setColor("Green")
-    .setDescription(
-      type === "vip"
-        ? "👑 VIP Anfrage"
-        : `Service: ${serviceName}`
-    );
+    .setDescription(`Service: ${service}`);
 
   await channel.send({
     content: `<@${interaction.user.id}> <@&${TEAM_ROLE_ID}>`,
@@ -148,7 +128,7 @@ async function createTicket(interaction, type, serviceName) {
   });
 
   await interaction.reply({
-    content: `✅ Ticket erstellt: ${channel}`,
+    content: `✅ Dein Ticket wurde erstellt: ${channel}`,
     ephemeral: true
   });
 }
@@ -160,18 +140,22 @@ async function createTicket(interaction, type, serviceName) {
 
 client.on("interactionCreate", async interaction => {
 
+  // ========================
   // SLASH COMMANDS
+  // ========================
+
   if (interaction.isChatInputCommand()) {
 
+    // KAUFANFRAGE PANEL
     if (interaction.commandName === "panel") {
 
       const embed = new EmbedBuilder()
-        .setTitle("🛍️ Kaufanfrage")
-        .setDescription("Wähle deinen Service")
+        .setTitle("🛍️ Kaufanfrage Ticket")
+        .setDescription("Wähle deinen gewünschten Service aus:")
         .setColor("Blue");
 
       const menu = new StringSelectMenuBuilder()
-        .setCustomId("ticket_select")
+        .setCustomId("buy_select")
         .setPlaceholder("Service auswählen")
         .addOptions([
           { label: "🤖 Bot Einrichtung", value: "Bot Einrichtung" },
@@ -183,27 +167,30 @@ client.on("interactionCreate", async interaction => {
 
       await interaction.reply({
         embeds: [embed],
-        components: [row],
+        components: [row]
       });
-
     }
 
+    // VIP PANEL
     if (interaction.commandName === "vip-panel") {
 
       const embed = new EmbedBuilder()
         .setTitle("👑 VIP Bundle")
         .setColor("Gold")
         .setDescription(`
-**Preis:** 25€
+**Preis: 25€**
 
-• 👑 VIP Rolle
-• ⚡ Schnellere Bearbeitung
-• 🔒 Priorität
-• 🌟 Exklusive Vorteile
+**Vorteile:**
+• 👑 Exklusive VIP Rolle  
+• ⚡ Schnellere Bearbeitung  
+• 🔒 Prioritäts Support  
+• 🌟 Exklusive Server Vorteile  
+
+Klicke unten um dein VIP Ticket zu erstellen.
 `);
 
       const button = new ButtonBuilder()
-        .setCustomId("vip_ticket")
+        .setCustomId("vip_button")
         .setLabel("👑 VIP Ticket erstellen")
         .setStyle(ButtonStyle.Primary);
 
@@ -211,67 +198,95 @@ client.on("interactionCreate", async interaction => {
 
       await interaction.reply({
         embeds: [embed],
-        components: [row],
+        components: [row]
       });
-
     }
 
+    // PREISE (MIT VOLLER INFO)
     if (interaction.commandName === "preise") {
 
       const embed = new EmbedBuilder()
         .setTitle("💰 Preise")
         .setColor("Blue")
         .setDescription(`
-🤖 Bot Einrichtung: 3€ – 8€
-⚙️ Server Einrichtung: 3€ – 8€
-🔥 Bundle: 18€ – 22€
-⭐ Extras: 2€ – 5€
+🤖 **Bot Einrichtung**  
+Preis: 3€ – 8€  
+• Ticket System  
+• Moderations Commands  
+• Custom Commands  
+• Rollen & Permissions  
+• Fertiger Bot  
+
+⚙️ **Server Einrichtung**  
+Preis: 3€ – 8€  
+• Kategorien & Channels  
+• Rollen System  
+• Permissions Setup  
+• Sauberes Design  
+
+🔥 **Server + Bot Einrichtung (Bundle)**  
+Preis: 18€ – 22€  
+• Komplettes Setup  
+• Perfekt abgestimmt  
+• Sofort einsatzbereit  
+
+⭐ **Extras**  
+Preis: 2€ – 5€  
+• Extra Commands  
+• Zusätzliche Features  
+• Prioritäts Bearbeitung  
+
+📩 Bestellung über das Kaufanfrage Panel
 `);
 
       await interaction.reply({ embeds: [embed] });
-
     }
 
   }
 
 
-  // SELECT MENU
+  // ========================
+  // SERVICE AUSWAHL
+  // ========================
+
   if (interaction.isStringSelectMenu()) {
-    if (interaction.customId === "ticket_select") {
+    if (interaction.customId === "buy_select") {
       createTicket(interaction, "ticket", interaction.values[0]);
     }
   }
 
-
+  // ========================
   // VIP BUTTON
+  // ========================
+
   if (interaction.isButton()) {
 
-    if (interaction.customId === "vip_ticket") {
+    if (interaction.customId === "vip_button") {
       createTicket(interaction, "vip", "VIP Bundle");
     }
 
-
-    // CLOSE BUTTON
     if (interaction.customId.startsWith("close_")) {
-
-      const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
 
       const args = interaction.customId.split("_");
       const creatorId = args[1];
       const service = args.slice(2).join("_");
 
+      const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
+
       const logEmbed = new EmbedBuilder()
         .setTitle("📁 Ticket geschlossen")
         .setColor("Red")
         .addFields(
-          { name: "Ticket Name", value: interaction.channel.name },
+          { name: "Ticket", value: interaction.channel.name },
           { name: "Ersteller", value: `<@${creatorId}>` },
           { name: "Geschlossen von", value: `<@${interaction.user.id}>` },
           { name: "Service", value: service }
         )
         .setTimestamp();
 
-      await logChannel.send({ embeds: [logEmbed] });
+      if (logChannel) {
+        logChannel.send({ embeds: [logEmbed] });
+      }
 
       await interaction.reply({
         content: "🔒 Ticket wird geschlossen...",
@@ -281,12 +296,10 @@ client.on("interactionCreate", async interaction => {
       setTimeout(() => {
         interaction.channel.delete().catch(() => {});
       }, 3000);
-
     }
 
   }
 
 });
-
 
 client.login(TOKEN);

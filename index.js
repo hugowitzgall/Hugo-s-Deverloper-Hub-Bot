@@ -331,24 +331,50 @@ Drücke den Button um ein VIP Ticket zu öffnen.
       savePrices(data);
 
       const embed = new EmbedBuilder()
-        .setTitle("💰 Unsere Preise")
-        .setColor("Blue")
-        .setDescription(`
-🤖 **Bot Einrichtung**  
-Individuelle Bot Konfiguration, Commands, Systeme  
-💵 Preis: ${data.bot}
+  .setTitle("💰 Unsere Preise")
+  .setColor("Blue")
+  .setDescription(`
+━━━━━━━━━━━━━━━━━━━━━━
 
-⚙️ **Server Einrichtung**  
-Komplettes Server Setup mit Rollen & Struktur  
-💵 Preis: ${data.server}
+🤖 **Bot Einrichtung**
+Erstellung & Konfiguration eines individuellen Discord Bots  
+• Commands  
+• Moderation  
+• Systeme  
+• Wunschfunktionen  
 
-🔥 **Bundle (Bot + Server)**  
-Kombipaket mit Rabatt  
-💵 Preis: ${data.bundle}
+💵 **Preis:** ${data.bot}
 
-⭐ **Extras**  
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚙️ **Server Einrichtung**
+Komplettes Server Setup  
+• Rollenstruktur  
+• Kategorien  
+• Sicherheit  
+• Permissions  
+
+💵 **Preis:** ${data.server}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🔥 **Bundle (Bot + Server)**
+Komplettpaket mit Rabatt  
+Ideal für neue Communities  
+
+💵 **Preis:** ${data.bundle}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⭐ **Extras**
 Individuelle Zusatzfunktionen  
-💵 Preis: ${data.extras}
+• Spezialfeatures  
+• Erweiterungen  
+• Custom Wünsche  
+
+💵 **Preis:** ${data.extras}
+
+━━━━━━━━━━━━━━━━━━━━━━
 `);
 
       interaction.reply({

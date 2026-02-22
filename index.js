@@ -24,8 +24,12 @@ const GUILD_ID = process.env.GUILD_ID;
 
 const SERVER_MITGLIED_ROLE_ID = "1474739183128940676";
 const LEITUNG_ROLE_ID = "1474814614406430771";
+
 const CATEGORY_ID = "1475187295450566828";
+const SUPPORT_CATEGORY_ID = "1475207417800167466";
+
 const LOG_CHANNEL_ID = "1475085569456607272";
+
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
@@ -86,16 +90,24 @@ const commands = [
     .setName("preise")
     .setDescription("Preise bearbeiten"),
 
+  new SlashCommandBuilder()
+    .setName("support-ticket")
+    .setDescription("Support Panel senden"),
+
 ].map(cmd => cmd.toJSON());
+
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 (async () => {
+
   await rest.put(
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
+
   console.log("✅ Slash Commands registriert");
+
 })();
 
 
@@ -103,7 +115,7 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 // TICKET ERSTELLEN
 // ========================
 
-async function createTicket(interaction, serviceName) {
+async function createTicket(interaction, serviceName, categoryID, isSupport = false) {
 
   if (!interaction.member.roles.cache.has(SERVER_MITGLIED_ROLE_ID)) {
     return interaction.reply({
@@ -114,9 +126,11 @@ async function createTicket(interaction, serviceName) {
 
   const channel = await interaction.guild.channels.create({
 
-    name: `ticket-${interaction.user.username}`,
+    name: `${isSupport ? "support" : "ticket"}-${interaction.user.username}`,
+
     type: ChannelType.GuildText,
-    parent: CATEGORY_ID,
+
+    parent: categoryID,
 
     permissionOverwrites: [
 
@@ -127,14 +141,6 @@ async function createTicket(interaction, serviceName) {
 
       {
         id: interaction.user.id,
-        allow: [
-          PermissionsBitField.Flags.ViewChannel,
-          PermissionsBitField.Flags.SendMessages
-        ]
-      },
-
-      {
-        id: SERVER_MITGLIED_ROLE_ID,
         allow: [
           PermissionsBitField.Flags.ViewChannel,
           PermissionsBitField.Flags.SendMessages
@@ -157,35 +163,46 @@ async function createTicket(interaction, serviceName) {
     .addComponents(
       new ButtonBuilder()
         .setCustomId("close_ticket")
-        .setLabel("Ticket schließen")
+        .setLabel("🔒 Ticket schließen")
         .setStyle(ButtonStyle.Danger)
     );
 
   const embed = new EmbedBuilder()
     .setTitle("🎫 Ticket erstellt")
-    .setDescription(`Service: ${serviceName}`)
+    .setDescription(`Grund: ${serviceName}`)
     .setColor("Green");
 
   await channel.send({
-    content: `<@${interaction.user.id}>`,
+
+    content: isSupport
+      ? `<@&${LEITUNG_ROLE_ID}> <@${interaction.user.id}>`
+      : `<@${interaction.user.id}>`,
+
     embeds: [embed],
     components: [closeButton]
+
   });
+
 
   const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
 
   logChannel.send({
+
     embeds: [
+
       new EmbedBuilder()
         .setTitle("📁 Ticket erstellt")
         .addFields(
           { name: "User", value: interaction.user.tag },
-          { name: "Service", value: serviceName },
+          { name: "Grund", value: serviceName },
           { name: "Channel", value: channel.name }
         )
         .setColor("Blue")
+
     ]
+
   });
+
 
   interaction.reply({
     content: `✅ Ticket erstellt: ${channel}`,
@@ -210,7 +227,11 @@ client.on("interactionCreate", async interaction => {
       });
     }
 
-    // PANEL
+
+    // ========================
+    // KAUF PANEL
+    // ========================
+
     if (interaction.commandName === "panel") {
 
       const embed = new EmbedBuilder()
@@ -227,17 +248,18 @@ client.on("interactionCreate", async interaction => {
           { label: "Bundle", value: "Bundle" }
         ]);
 
-      const row = new ActionRowBuilder().addComponents(menu);
-
       interaction.reply({
         embeds: [embed],
-        components: [row]
+        components: [new ActionRowBuilder().addComponents(menu)]
       });
 
     }
 
 
+    // ========================
     // VIP PANEL
+    // ========================
+
     if (interaction.commandName === "vip") {
 
       const embed = new EmbedBuilder()
@@ -248,27 +270,66 @@ client.on("interactionCreate", async interaction => {
 🎁 Exklusive Features  
 🛡️ Premium Support  
 
-Drücke den Button um ein VIP Ticket zu öffnen.
+Button drücken zum öffnen.
 `)
         .setColor("Gold");
 
-      const button = new ActionRowBuilder()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId("vip_ticket")
-            .setLabel("VIP Ticket öffnen")
-            .setStyle(ButtonStyle.Primary)
-        );
+      const button = new ActionRowBuilder().addComponents(
+
+        new ButtonBuilder()
+          .setCustomId("vip_ticket")
+          .setLabel("VIP Ticket öffnen")
+          .setStyle(ButtonStyle.Primary)
+
+      );
 
       interaction.reply({
+
         embeds: [embed],
         components: [button]
+
       });
 
     }
 
 
-    // PREISE COMMAND
+    // ========================
+    // SUPPORT PANEL
+    // ========================
+
+    if (interaction.commandName === "support-ticket") {
+
+      const embed = new EmbedBuilder()
+        .setTitle("🛠️ Support Ticket")
+        .setDescription("Wähle den Grund aus")
+        .setColor("Blue");
+
+      const row = new ActionRowBuilder().addComponents(
+
+        new ButtonBuilder()
+          .setCustomId("support_payment")
+          .setLabel("💳 Frage zur Zahlung")
+          .setStyle(ButtonStyle.Primary),
+
+        new ButtonBuilder()
+          .setCustomId("support_other")
+          .setLabel("❓ Anderes")
+          .setStyle(ButtonStyle.Secondary)
+
+      );
+
+      interaction.reply({
+        embeds: [embed],
+        components: [row]
+      });
+
+    }
+
+
+    // ========================
+    // PREISE
+    // ========================
+
     if (interaction.commandName === "preise") {
 
       const modal = new ModalBuilder()
@@ -280,17 +341,15 @@ Drücke den Button um ein VIP Ticket zu öffnen.
         new ActionRowBuilder().addComponents(
           new TextInputBuilder()
             .setCustomId("bot")
-            .setLabel("Bot Einrichtung Preis")
+            .setLabel("Bot Preis")
             .setStyle(TextInputStyle.Short)
-            .setRequired(true)
         ),
 
         new ActionRowBuilder().addComponents(
           new TextInputBuilder()
             .setCustomId("server")
-            .setLabel("Server Einrichtung Preis")
+            .setLabel("Server Preis")
             .setStyle(TextInputStyle.Short)
-            .setRequired(true)
         ),
 
         new ActionRowBuilder().addComponents(
@@ -298,7 +357,6 @@ Drücke den Button um ein VIP Ticket zu öffnen.
             .setCustomId("bundle")
             .setLabel("Bundle Preis")
             .setStyle(TextInputStyle.Short)
-            .setRequired(true)
         ),
 
         new ActionRowBuilder().addComponents(
@@ -306,26 +364,79 @@ Drücke den Button um ein VIP Ticket zu öffnen.
             .setCustomId("extras")
             .setLabel("Extras Preis")
             .setStyle(TextInputStyle.Short)
-            .setRequired(true)
         )
 
       );
 
       interaction.showModal(modal);
+
     }
+
   }
 
 
-  // MODAL SUBMIT
+  // ========================
+  // SUPPORT BUTTONS
+  // ========================
+
+  if (interaction.isButton()) {
+
+    if (interaction.customId === "support_payment")
+      createTicket(interaction, "Frage zur Zahlung", SUPPORT_CATEGORY_ID, true);
+
+    if (interaction.customId === "support_other")
+      createTicket(interaction, "Anderes", SUPPORT_CATEGORY_ID, true);
+
+    if (interaction.customId === "vip_ticket")
+      createTicket(interaction, "VIP Bundle", CATEGORY_ID);
+
+
+    if (interaction.customId === "close_ticket") {
+
+      const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
+
+      logChannel.send({
+
+        embeds: [
+
+          new EmbedBuilder()
+            .setTitle("❌ Ticket geschlossen")
+            .addFields(
+              { name: "Geschlossen von", value: interaction.user.tag },
+              { name: "Channel", value: interaction.channel.name }
+            )
+            .setColor("Red")
+
+        ]
+
+      });
+
+      interaction.channel.delete();
+
+    }
+
+  }
+
+
+  if (interaction.isStringSelectMenu()) {
+
+    if (interaction.customId === "select_service")
+      createTicket(interaction, interaction.values[0], CATEGORY_ID);
+
+  }
+
+
   if (interaction.isModalSubmit()) {
 
     if (interaction.customId === "preise_modal") {
 
       const data = {
+
         bot: interaction.fields.getTextInputValue("bot"),
         server: interaction.fields.getTextInputValue("server"),
         bundle: interaction.fields.getTextInputValue("bundle"),
         extras: interaction.fields.getTextInputValue("extras")
+
       };
 
       savePrices(data);
@@ -377,45 +488,11 @@ Individuelle Zusatzfunktionen
 ━━━━━━━━━━━━━━━━━━━━━━
 `);
 
-      interaction.reply({
-        embeds: [embed]
-      });
+interaction.reply({
+  content: "✅ Preise gespeichert und Panel aktualisiert",
+  embeds: [embed]
+});
 
-    }
-
-  }
-
-
-  if (interaction.isStringSelectMenu()) {
-    if (interaction.customId === "select_service") {
-      createTicket(interaction, interaction.values[0]);
-    }
-  }
-
-
-  if (interaction.isButton()) {
-
-    if (interaction.customId === "vip_ticket") {
-      createTicket(interaction, "VIP Bundle");
-    }
-
-    if (interaction.customId === "close_ticket") {
-
-      const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
-
-      logChannel.send({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle("❌ Ticket geschlossen")
-            .addFields(
-              { name: "Geschlossen von", value: interaction.user.tag },
-              { name: "Channel", value: interaction.channel.name }
-            )
-            .setColor("Red")
-        ]
-      });
-
-      interaction.channel.delete();
     }
 
   }

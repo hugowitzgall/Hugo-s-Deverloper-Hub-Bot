@@ -13,289 +13,113 @@ const {
   Routes,
   ModalBuilder,
   TextInputBuilder,
-  TextInputStyle,
-  InteractionType
+  TextInputStyle
 } = require("discord.js");
+
+const fs = require("fs");
 
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
-// HIER DEINE IDs EINTRAGEN
-const SERVER_MITGLIED_ROLE_ID = "1475052544383389718";
-const TICKET_CATEGORY_ID = "1474868652896555080";
+const SERVER_MITGLIED_ROLE_ID = "1474739183128940676";
+const LEITUNG_ROLE_ID = "1474814614406430771";
+const CATEGORY_ID = "1475187295450566828";
 const LOG_CHANNEL_ID = "1475085569456607272";
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers
-  ]
+  intents: [GatewayIntentBits.Guilds],
 });
 
+client.once("ready", () => {
+  console.log(`✅ Bot ist online als ${client.user.tag}`);
+});
+
+
 // ========================
-// SLASH COMMANDS
+// PREISE SPEICHER SYSTEM
+// ========================
+
+function loadPrices() {
+
+  if (!fs.existsSync("preise.json")) {
+
+    const defaultPrices = {
+
+      bot: "3€ – 8€",
+      server: "3€ – 8€",
+      bundle: "18€ – 22€",
+      extras: "2€ – 5€"
+
+    };
+
+    fs.writeFileSync("preise.json", JSON.stringify(defaultPrices, null, 2));
+    return defaultPrices;
+
+  }
+
+  return JSON.parse(fs.readFileSync("preise.json"));
+
+}
+
+function savePrices(data) {
+
+  fs.writeFileSync("preise.json", JSON.stringify(data, null, 2));
+
+}
+
+function isLeitung(member) {
+
+  return member.roles.cache.has(LEITUNG_ROLE_ID);
+
+}
+
+
+// ========================
+// COMMANDS
 // ========================
 
 const commands = [
 
   new SlashCommandBuilder()
     .setName("panel")
-    .setDescription("Sendet Kaufanfrage Panel"),
+    .setDescription("Kaufanfrage Panel"),
 
   new SlashCommandBuilder()
     .setName("vip")
-    .setDescription("Sendet VIP Panel"),
+    .setDescription("VIP Panel"),
 
   new SlashCommandBuilder()
     .setName("preise")
-    .setDescription("Preise eingeben und senden")
+    .setDescription("Preise bearbeiten"),
 
-].map(c => c.toJSON());
+].map(cmd => cmd.toJSON());
+
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
-client.once("ready", async () => {
-
-  console.log(`Logged in as ${client.user.tag}`);
+(async () => {
 
   await rest.put(
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
 
-});
+  console.log("✅ Slash Commands registriert");
+
+})();
+
 
 // ========================
-// INTERACTION HANDLER
+// TICKET ERSTELLEN
 // ========================
 
-client.on("interactionCreate", async interaction => {
-
-  // ========================
-  // SLASH COMMANDS
-  // ========================
-
-  if (interaction.isChatInputCommand()) {
-
-    // ========================
-    // KAUFANFRAGE PANEL
-    // ========================
-
-    if (interaction.commandName === "panel") {
-
-      const embed = new EmbedBuilder()
-        .setTitle("🛒 Kaufanfrage")
-        .setDescription("Wähle einen Service aus")
-        .setColor("Blue");
-
-      const menu = new StringSelectMenuBuilder()
-        .setCustomId("service_select")
-        .setPlaceholder("Service auswählen")
-        .addOptions([
-          {
-            label: "Bot Einrichtung",
-            value: "Bot Einrichtung"
-          },
-          {
-            label: "Server Einrichtung",
-            value: "Server Einrichtung"
-          },
-          {
-            label: "Bundle",
-            value: "Bundle"
-          },
-          {
-            label: "Extras",
-            value: "Extras"
-          }
-        ]);
-
-      const row = new ActionRowBuilder().addComponents(menu);
-
-      await interaction.reply({
-        embeds: [embed],
-        components: [row]
-      });
-
-    }
-
-    // ========================
-    // VIP PANEL
-    // ========================
-
-    if (interaction.commandName === "vip") {
-
-      const embed = new EmbedBuilder()
-        .setTitle("💎 VIP Bundle")
-        .setDescription(`
-• Prioritäts Support
-• Schnellere Bearbeitung
-• Premium Features
-• Extra Commands
-• Exklusive Vorteile
-
-Drücke den Button um ein VIP Ticket zu öffnen
-`)
-        .setColor("Gold");
-
-      const button = new ButtonBuilder()
-        .setCustomId("vip_ticket")
-        .setLabel("VIP Ticket öffnen")
-        .setStyle(ButtonStyle.Primary);
-
-      const row = new ActionRowBuilder().addComponents(button);
-
-      await interaction.reply({
-        embeds: [embed],
-        components: [row]
-      });
-
-    }
-
-    // ========================
-    // PREISE COMMAND
-    // ========================
-
-    if (interaction.commandName === "preise") {
-
-      const modal = new ModalBuilder()
-        .setCustomId("preise_modal")
-        .setTitle("Preise eingeben");
-
-      const botInput = new TextInputBuilder()
-        .setCustomId("bot_price")
-        .setLabel("Bot Preis")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true);
-
-      const serverInput = new TextInputBuilder()
-        .setCustomId("server_price")
-        .setLabel("Server Preis")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true);
-
-      const bundleInput = new TextInputBuilder()
-        .setCustomId("bundle_price")
-        .setLabel("Bundle Preis")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true);
-
-      const extrasInput = new TextInputBuilder()
-        .setCustomId("extras_price")
-        .setLabel("Extras Preis")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true);
-
-      modal.addComponents(
-        new ActionRowBuilder().addComponents(botInput),
-        new ActionRowBuilder().addComponents(serverInput),
-        new ActionRowBuilder().addComponents(bundleInput),
-        new ActionRowBuilder().addComponents(extrasInput)
-      );
-
-      await interaction.showModal(modal);
-
-    }
-
-  }
-
-  // ========================
-  // MODAL SUBMIT PREISE
-  // ========================
-
-  if (
-    interaction.type === InteractionType.ModalSubmit &&
-    interaction.customId === "preise_modal"
-  ) {
-
-    const botPrice = interaction.fields.getTextInputValue("bot_price");
-    const serverPrice = interaction.fields.getTextInputValue("server_price");
-    const bundlePrice = interaction.fields.getTextInputValue("bundle_price");
-    const extrasPrice = interaction.fields.getTextInputValue("extras_price");
-
-    const embed = new EmbedBuilder()
-      .setTitle("💰 Preise")
-      .setColor("Blue")
-      .setDescription(`
-🤖 Bot Einrichtung  
-Preis: ${botPrice}
-
-⚙️ Server Einrichtung  
-Preis: ${serverPrice}
-
-🔥 Bundle  
-Preis: ${bundlePrice}
-
-⭐ Extras  
-Preis: ${extrasPrice}
-`);
-
-    await interaction.reply({
-      embeds: [embed]
-    });
-
-  }
-
-  // ========================
-  // SERVICE SELECT
-  // ========================
-
-  if (interaction.isStringSelectMenu()) {
-
-    if (interaction.customId === "service_select") {
-
-      await createTicket(interaction, interaction.values[0]);
-
-    }
-
-  }
-
-  // ========================
-  // VIP BUTTON
-  // ========================
-
-  if (interaction.isButton()) {
-
-    if (interaction.customId === "vip_ticket") {
-
-      await createTicket(interaction, "VIP");
-
-    }
-
-    if (interaction.customId === "close_ticket") {
-
-      const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
-
-      if (logChannel) {
-
-        logChannel.send(`
-Ticket geschlossen
-
-User: ${interaction.user.tag}
-Ticket: ${interaction.channel.name}
-`);
-
-      }
-
-      await interaction.channel.delete();
-
-    }
-
-  }
-
-});
-
-// ========================
-// CREATE TICKET FUNCTION
-// ========================
-
-async function createTicket(interaction, service) {
+async function createTicket(interaction, serviceName) {
 
   if (!interaction.member.roles.cache.has(SERVER_MITGLIED_ROLE_ID)) {
 
     return interaction.reply({
-      content: "Du hast keine Berechtigungen",
+      content: "❌ Du hast keine Berechtigung.",
       ephemeral: true
     });
 
@@ -304,14 +128,16 @@ async function createTicket(interaction, service) {
   const channel = await interaction.guild.channels.create({
 
     name: `ticket-${interaction.user.username}`,
+
     type: ChannelType.GuildText,
-    parent: TICKET_CATEGORY_ID,
+
+    parent: CATEGORY_ID,
 
     permissionOverwrites: [
 
       {
         id: interaction.guild.id,
-        deny: [PermissionsBitField.Flags.ViewChannel]
+        deny: [PermissionsBitField.Flags.ViewChannel],
       },
 
       {
@@ -328,54 +154,282 @@ async function createTicket(interaction, service) {
           PermissionsBitField.Flags.ViewChannel,
           PermissionsBitField.Flags.SendMessages
         ]
+      },
+
+      {
+        id: LEITUNG_ROLE_ID,
+        allow: [
+          PermissionsBitField.Flags.ViewChannel,
+          PermissionsBitField.Flags.SendMessages
+        ]
       }
 
     ]
 
   });
 
+  const closeButton = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId("close_ticket")
+        .setLabel("Ticket schließen")
+        .setStyle(ButtonStyle.Danger)
+    );
+
   const embed = new EmbedBuilder()
-    .setTitle("Ticket erstellt")
-    .setDescription(`
-User: ${interaction.user}
-Service: ${service}
-`)
+    .setTitle("🎫 Ticket erstellt")
+    .setDescription(`Service: ${serviceName}`)
     .setColor("Green");
 
-  const closeButton = new ButtonBuilder()
-    .setCustomId("close_ticket")
-    .setLabel("Ticket schließen")
-    .setStyle(ButtonStyle.Danger);
-
-  const row = new ActionRowBuilder().addComponents(closeButton);
-
   await channel.send({
-    content: `${interaction.user}`,
+    content: `<@${interaction.user.id}>`,
     embeds: [embed],
-    components: [row]
+    components: [closeButton]
   });
 
   const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
 
-  if (logChannel) {
+  logChannel.send({
 
-    logChannel.send(`
-Ticket erstellt
+    embeds: [
+      new EmbedBuilder()
+        .setTitle("📁 Ticket erstellt")
+        .addFields(
+          { name: "User", value: interaction.user.tag },
+          { name: "Service", value: serviceName },
+          { name: "Channel", value: channel.name }
+        )
+        .setColor("Blue")
+    ]
 
-User: ${interaction.user.tag}
-Service: ${service}
-Channel: ${channel.name}
-`);
+  });
 
-  }
-
-  await interaction.reply({
-    content: `Ticket erstellt: ${channel}`,
+  interaction.reply({
+    content: `✅ Ticket erstellt: ${channel}`,
     ephemeral: true
   });
 
 }
 
+
 // ========================
+// INTERACTIONS
+// ========================
+
+client.on("interactionCreate", async interaction => {
+
+  // ========================
+  // SLASH COMMANDS
+  // ========================
+
+  if (interaction.isChatInputCommand()) {
+
+    if (!isLeitung(interaction.member)) {
+
+      return interaction.reply({
+        content: "❌ Nur Leitungsebene darf diesen Command benutzen",
+        ephemeral: true
+      });
+
+    }
+
+    // PANEL
+    if (interaction.commandName === "panel") {
+
+      const embed = new EmbedBuilder()
+        .setTitle("🛍️ Kaufanfrage")
+        .setDescription("Service auswählen")
+        .setColor("Blue");
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId("select_service")
+        .setPlaceholder("Service wählen")
+        .addOptions([
+          { label: "Bot Einrichtung", value: "Bot Einrichtung" },
+          { label: "Server Einrichtung", value: "Server Einrichtung" },
+          { label: "Bundle", value: "Bundle" }
+        ]);
+
+      const row = new ActionRowBuilder().addComponents(menu);
+
+      interaction.reply({
+        embeds: [embed],
+        components: [row]
+      });
+
+    }
+
+
+    // VIP PANEL
+    if (interaction.commandName === "vip") {
+
+      const embed = new EmbedBuilder()
+        .setTitle("👑 VIP Bundle")
+        .setDescription("VIP Bundle kaufen")
+        .setColor("Gold");
+
+      const button = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId("vip_ticket")
+            .setLabel("VIP Ticket öffnen")
+            .setStyle(ButtonStyle.Primary)
+        );
+
+      interaction.reply({
+        embeds: [embed],
+        components: [button]
+      });
+
+    }
+
+
+    // PREISE COMMAND
+    if (interaction.commandName === "preise") {
+
+      const modal = new ModalBuilder()
+        .setCustomId("preise_modal")
+        .setTitle("Preise eingeben");
+
+      modal.addComponents(
+
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId("bot")
+            .setLabel("Bot Preis")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+        ),
+
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId("server")
+            .setLabel("Server Preis")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+        ),
+
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId("bundle")
+            .setLabel("Bundle Preis")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+        ),
+
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId("extras")
+            .setLabel("Extras Preis")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+        )
+
+      );
+
+      interaction.showModal(modal);
+
+    }
+
+  }
+
+
+  // ========================
+  // MODAL SUBMIT
+  // ========================
+
+  if (interaction.isModalSubmit()) {
+
+    if (interaction.customId === "preise_modal") {
+
+      const data = {
+
+        bot: interaction.fields.getTextInputValue("bot"),
+        server: interaction.fields.getTextInputValue("server"),
+        bundle: interaction.fields.getTextInputValue("bundle"),
+        extras: interaction.fields.getTextInputValue("extras")
+
+      };
+
+      savePrices(data);
+
+      const embed = new EmbedBuilder()
+
+        .setTitle("💰 Preise")
+        .setDescription(
+
+`🤖 Bot Einrichtung: ${data.bot}
+
+⚙️ Server Einrichtung: ${data.server}
+
+🔥 Bundle: ${data.bundle}
+
+⭐ Extras: ${data.extras}`
+
+        )
+        .setColor("Blue");
+
+      interaction.reply({
+        embeds: [embed]
+      });
+
+    }
+
+  }
+
+
+  // ========================
+  // SELECT MENU
+  // ========================
+
+  if (interaction.isStringSelectMenu()) {
+
+    if (interaction.customId === "select_service") {
+
+      createTicket(interaction, interaction.values[0]);
+
+    }
+
+  }
+
+
+  // ========================
+  // VIP BUTTON
+  // ========================
+
+  if (interaction.isButton()) {
+
+    if (interaction.customId === "vip_ticket") {
+
+      createTicket(interaction, "VIP Bundle");
+
+    }
+
+    if (interaction.customId === "close_ticket") {
+
+      const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
+
+      logChannel.send({
+
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("❌ Ticket geschlossen")
+            .addFields(
+              { name: "Geschlossen von", value: interaction.user.tag },
+              { name: "Channel", value: interaction.channel.name }
+            )
+            .setColor("Red")
+        ]
+
+      });
+
+      interaction.channel.delete();
+
+    }
+
+  }
+
+});
+
 
 client.login(TOKEN);

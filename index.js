@@ -1,117 +1,229 @@
-const { 
-  Client, 
-  GatewayIntentBits, 
-  REST, 
-  Routes, 
-  SlashCommandBuilder, 
-  EmbedBuilder 
+const {
+  Client,
+  GatewayIntentBits,
+  EmbedBuilder,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  ChannelType,
+  PermissionsBitField,
+  SlashCommandBuilder,
+  REST,
+  Routes
 } = require("discord.js");
+
+
+// ========================
+// ENV VARS (Railway)
+// ========================
 
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
+const CATEGORY_ID = process.env.CATEGORY_ID;
+const TEAM_ROLE_ID = process.env.TEAM_ROLE_ID;
+
+
+// ========================
+// CLIENT
+// ========================
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds],
+});
+
+client.once("clientReady", () => {
+  console.log(`✅ Bot ist online als ${client.user.tag}`);
 });
 
 
-// SLASH COMMANDS DEFINIEREN
+// ========================
+// SLASH COMMANDS REGISTRIEREN
+// ========================
+
 const commands = [
 
   new SlashCommandBuilder()
-    .setName("preise")
-    .setDescription("Zeigt alle Preise an"),
-
-  new SlashCommandBuilder()
-    .setName("kaufanfrage")
+    .setName("panel")
     .setDescription("Sendet das Kaufanfrage Panel"),
 
   new SlashCommandBuilder()
     .setName("vip-panel")
-    .setDescription("Sendet das VIP Panel")
+    .setDescription("Sendet das VIP Panel"),
+
+  new SlashCommandBuilder()
+    .setName("preise")
+    .setDescription("Zeigt die Preisliste"),
 
 ].map(cmd => cmd.toJSON());
 
 
-// COMMANDS REGISTRIEREN
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
-(async () => {
+async function registerCommands() {
+
   try {
-    console.log("Registriere Slash Commands...");
+
+    console.log("🔄 Registriere Slash Commands...");
 
     await rest.put(
       Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
       { body: commands }
     );
 
-    console.log("Slash Commands erfolgreich registriert");
+    console.log("✅ Slash Commands registriert");
 
   } catch (error) {
     console.error(error);
   }
-})();
+
+}
 
 
-// BOT READY
-client.once("ready", () => {
-  console.log(`Bot ist online als ${client.user.tag}`);
-});
+// ========================
+// INTERACTIONS
+// ========================
 
-
-// COMMAND HANDLER
-client.on("interactionCreate", async interaction => {
+client.on("interactionCreate", async (interaction) => {
 
   if (!interaction.isChatInputCommand()) return;
 
 
+  // ========================
   // PREISE COMMAND
+  // ========================
+
   if (interaction.commandName === "preise") {
 
     const embed = new EmbedBuilder()
-      .setTitle("💸 Preise")
+      .setColor("#2b2d31")
+      .setTitle("💰 PREISE")
       .setDescription(`
-Hier sind alle aktuellen Preise:
+**🤖 Bot Einrichtung**
+💶 Preis: 3€ – 8€
+• Ticket System
+• Moderations Commands
+• Custom Commands
+• Rollen & Permissions
+• Fertig eingerichtet
 
-🔹 Produkt 1 — 5€
-🔹 Produkt 2 — 10€
-🔹 Produkt 3 — 20€
+━━━━━━━━━━━━━━━━━━━━
 
-Bei Interesse nutze /kaufanfrage
-`)
-      .setColor(0x00AEFF)
-      .setFooter({ text: "Preisübersicht" })
-      .setTimestamp();
+**⚙️ Server Einrichtung**
+💶 Preis: 3€ – 8€
+• Kategorien & Channels
+• Rollen Setup
+• Permissions Setup
+• Sauberes Design
+• Komplett fertig
 
-    await interaction.reply({ embeds: [embed] });
+━━━━━━━━━━━━━━━━━━━━
+
+**🔥 Bundle**
+💶 Preis: 18€ – 22€
+• Server Setup
+• Bot Setup
+• Perfekt abgestimmt
+• Sofort bereit
+
+━━━━━━━━━━━━━━━━━━━━
+
+**⭐ Extras**
+• Extra Commands → +2€
+• Features → +2€ – 5€
+• Priorität → +3€
+
+━━━━━━━━━━━━━━━━━━━━
+
+📩 Ticket öffnen unter:
+🛍️ Kaufanfrage Ticket
+
+⚡ Schnell  
+🔒 Sicher  
+💬 Support verfügbar
+`);
+
+    await interaction.reply({
+      embeds: [embed]
+    });
+
   }
 
 
-  // KAUFANFRAGE COMMAND
-  if (interaction.commandName === "kaufanfrage") {
+  // ========================
+  // NORMAL PANEL
+  // ========================
+
+  if (interaction.commandName === "panel") {
 
     const embed = new EmbedBuilder()
-      .setTitle("🛒 Kaufanfrage")
-      .setDescription("Erstelle hier deine Kaufanfrage.")
-      .setColor(0x00FF00);
+      .setTitle("🛍️ Kaufanfrage Ticket")
+      .setDescription("Wähle deinen Service")
+      .setColor("Blue");
 
-    await interaction.reply({ embeds: [embed] });
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("ticket_select")
+      .setPlaceholder("Service auswählen")
+      .addOptions([
+        {
+          label: "🤖 Bot Einrichtung",
+          value: "bot"
+        },
+        {
+          label: "⚙️ Server Einrichtung",
+          value: "server"
+        },
+        {
+          label: "🔥 Bundle",
+          value: "bundle"
+        }
+      ]);
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    await interaction.reply({
+      embeds: [embed],
+      components: [row],
+    });
+
   }
 
 
-  // VIP PANEL COMMAND
+  // ========================
+  // VIP PANEL
+  // ========================
+
   if (interaction.commandName === "vip-panel") {
 
     const embed = new EmbedBuilder()
-      .setTitle("👑 VIP Panel")
-      .setDescription("Hier kannst du VIP kaufen.")
-      .setColor(0xFFD700);
+      .setTitle("👑 VIP Anfrage")
+      .setDescription("VIP Ticket erstellen")
+      .setColor("Gold");
 
-    await interaction.reply({ embeds: [embed] });
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("vip_select")
+      .setPlaceholder("VIP auswählen")
+      .addOptions([
+        {
+          label: "👑 VIP Bundle",
+          value: "vip"
+        }
+      ]);
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    await interaction.reply({
+      embeds: [embed],
+      components: [row],
+    });
+
   }
 
 });
 
 
+// ========================
+// START
+// ========================
+
 client.login(TOKEN);
+registerCommands();

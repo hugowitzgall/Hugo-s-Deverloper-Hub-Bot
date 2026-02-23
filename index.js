@@ -23,7 +23,7 @@ const client = new Client({
 
 // ================= CONFIG =================
 
-const TOKEN = "MTQ3NDg2NzEwMjkyOTEyNTQ4OQ.GDaaD6.woQ3X5-z6ARSI2r0ypBMkvmS96JANL8AjbeN80";
+const TOKEN = "MTQ3NDg2NzEwMjkyOTEyNTQ4OQ.GnEuQZ.YNdmSNtnH-FDrct-cs6JUobTiNn-chy7aW0vWY";
 
 const LEITUNG_ROLE_ID = "1474814614406430771";
 const SERVER_ROLE_ID = "1474739183128940676";
@@ -494,3 +494,4 @@ client.on(Events.InteractionCreate, async interaction => {
 
 
 client.login(TOKEN);
+

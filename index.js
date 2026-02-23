@@ -17,21 +17,17 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-
-// ================= CONFIG =================
-
 const TOKEN = process.env.TOKEN;
-
-const GUILD_ID = "1474737014732493012";
+const CLIENT_ID = process.env.CLIENT_ID;
+const GUILD_ID = process.env.GUILD_ID;
 
 const LEITUNG_ROLE_ID = "1474814614406430771";
-const SERVER_ROLE_ID = "1474739183128940676";
-
 const KAUF_KATEGORIE_ID = "1475187295450566828";
 const SUPPORT_KATEGORIE_ID = "1475207417800167466";
 
 
-// ================= SLASH COMMANDS =================
+
+/* ================= COMMANDS ================= */
 
 const commands = [
 
@@ -51,7 +47,11 @@ const commands = [
     .setName("support")
     .setDescription("Support Panel senden")
 
-];
+].map(c => c.toJSON());
+
+
+
+/* ================= READY ================= */
 
 client.once("clientReady", async () => {
 
@@ -60,127 +60,88 @@ client.once("clientReady", async () => {
   const rest = new REST({ version: "10" }).setToken(TOKEN);
 
   await rest.put(
-    Routes.applicationGuildCommands(client.user.id, GUILD_ID),
+    Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
+
+  console.log("Commands synchronisiert");
 
 });
 
 
-// ================= CREATE TICKET =================
 
-async function createTicket(interaction, name, reason, category) {
+/* ================= TICKET SYSTEM ================= */
 
-  if (!interaction.member.roles.cache.has(SERVER_ROLE_ID))
-    return interaction.reply({ content: "Keine Berechtigung", ephemeral: true });
+async function createTicket(interaction, name, reason, categoryId, sendQuestions = false) {
 
   const channel = await interaction.guild.channels.create({
-
     name: name,
     type: ChannelType.GuildText,
-    parent: category,
-
+    parent: categoryId,
     permissionOverwrites: [
-
       {
         id: interaction.guild.id,
         deny: [PermissionsBitField.Flags.ViewChannel]
       },
-
       {
         id: interaction.user.id,
-        allow: [
-          PermissionsBitField.Flags.ViewChannel,
-          PermissionsBitField.Flags.SendMessages
-        ]
+        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
       },
-
       {
         id: LEITUNG_ROLE_ID,
-        allow: [
-          PermissionsBitField.Flags.ViewChannel,
-          PermissionsBitField.Flags.SendMessages
-        ]
+        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
       }
-
     ]
-
   });
 
-  const closeRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("close_ticket")
-      .setLabel("Ticket schließen")
-      .setStyle(ButtonStyle.Danger)
-  );
-
-  await channel.send({
-    content: `<@${interaction.user.id}>`,
-    embeds: [
-      new EmbedBuilder()
-        .setTitle("🎫 Ticket erstellt")
-        .setDescription(`Grund: ${reason}`)
-        .setColor("Green")
-    ],
-    components: [closeRow]
+  await interaction.reply({
+    content: `Ticket erstellt: ${channel}`,
+    ephemeral: true
   });
 
-  // Fragen automatisch senden
+  if (sendQuestions) {
 
-  let questions = "";
+    let fragen = "";
 
-  if (reason === "Bot Einrichtung") {
-    questions =
+    if (reason === "Bot Einrichtung") {
+      fragen =
 `📋 Bot Fragen
-1. Bot Name
-2. Funktionen
-3. Slash Commands?
-4. Wünsche`;
-  }
+• Bot Name?
+• Funktionen?
+• Slash Commands?
+• Weitere Wünsche?`;
+    }
 
-  if (reason === "Server Einrichtung") {
-    questions =
+    if (reason === "Server Einrichtung") {
+      fragen =
 `📋 Server Fragen
-1. Server Art
-2. Rollen Anzahl
-3. Moderation?
-4. Design Wünsche`;
-  }
+• Welche Art Server?
+• Wie viele Rollen?
+• Design Wünsche?`;
+    }
 
-  if (reason === "Bundle") {
-    questions =
+    if (reason === "Bundle") {
+      fragen =
 `📋 Bundle Fragen
-1. Bot Wünsche
-2. Server Wünsche
-3. Extras`;
+• Bot Wünsche?
+• Server Wünsche?
+• Extras?`;
+    }
+
+    if (fragen !== "")
+      channel.send({ content: `<@${interaction.user.id}>\n${fragen}` });
+
   }
-
-  if (reason === "VIP") {
-    questions =
-`⭐ VIP Fragen
-1. Wunsch
-2. Priorität
-3. Extras`;
-  }
-
-  if (reason === "Support") {
-    questions =
-`📋 Support
-Beschreibe dein Problem genau.`;
-  }
-
-  if (questions !== "") channel.send({ content: questions });
-
-  interaction.reply({ content: `Ticket erstellt: ${channel}`, ephemeral: true });
 
 }
 
 
-// ================= INTERACTIONS =================
+
+/* ================= INTERACTIONS ================= */
 
 client.on(Events.InteractionCreate, async interaction => {
 
-  // ================= COMMANDS =================
+  /* ========= COMMANDS ========= */
 
   if (interaction.isChatInputCommand()) {
 
@@ -188,19 +149,14 @@ client.on(Events.InteractionCreate, async interaction => {
       return interaction.reply({ content: "Keine Berechtigung", ephemeral: true });
 
 
-    // ===== KAUF PANEL =====
+
+    /* ===== KAUF PANEL ===== */
 
     if (interaction.commandName === "panel") {
 
       const embed = new EmbedBuilder()
-        .setTitle("🛒 Kaufanfrage")
-        .setDescription(`
-Wähle dein Produkt:
-
-• Professionelle Entwicklung
-• Schneller Support
-• Individuelle Wünsche möglich
-`)
+        .setTitle("🛒 Kauf Panel")
+        .setDescription("Wähle dein Paket")
         .setColor("Blue");
 
       const row = new ActionRowBuilder().addComponents(
@@ -227,24 +183,23 @@ Wähle dein Produkt:
     }
 
 
-    // ===== VIP PANEL (ALT) =====
+
+    /* ===== VIP PANEL ===== */
 
     if (interaction.commandName === "vip-panel") {
 
       const embed = new EmbedBuilder()
-        .setTitle("⭐ VIP Support")
-        .setDescription(`
-• Schnellere Bearbeitung
-• Priorität
-• Direkter Kontakt
-`)
+        .setTitle("⭐ VIP Panel")
+        .setDescription("VIP Ticket öffnen")
         .setColor("Gold");
 
       const row = new ActionRowBuilder().addComponents(
+
         new ButtonBuilder()
           .setCustomId("vip")
-          .setLabel("VIP Ticket öffnen")
+          .setLabel("VIP Ticket")
           .setStyle(ButtonStyle.Success)
+
       );
 
       return interaction.reply({ embeds: [embed], components: [row] });
@@ -252,7 +207,32 @@ Wähle dein Produkt:
     }
 
 
-    // ===== PREISE PANEL (ALTES EMBED) =====
+
+    /* ===== SUPPORT PANEL ===== */
+
+    if (interaction.commandName === "support") {
+
+      const embed = new EmbedBuilder()
+        .setTitle("🆘 Support Panel")
+        .setDescription("Support Ticket öffnen")
+        .setColor("Red");
+
+      const row = new ActionRowBuilder().addComponents(
+
+        new ButtonBuilder()
+          .setCustomId("support_ticket")
+          .setLabel("Support Ticket öffnen")
+          .setStyle(ButtonStyle.Danger)
+
+      );
+
+      return interaction.reply({ embeds: [embed], components: [row] });
+
+    }
+
+
+
+    /* ===== PREISE PANEL (ALTES EMBED) ===== */
 
     if (interaction.commandName === "preise-panel") {
 
@@ -263,97 +243,66 @@ Wähle dein Produkt:
         .setDescription(`
 
 🤖 **Bot Einrichtung**
-Preis auf Anfrage
 • Individuelle Bot Entwicklung
 • Slash Commands möglich
 • Datenbank Integration
-• Updates inklusive
+Preis auf Anfrage
 
 ⚙️ **Server Einrichtung**
-Preis auf Anfrage
 • Komplettes Setup
 • Rollen & Permissions
 • Modernes Design
-• Sicherheit optimiert
+Preis auf Anfrage
 
 🔥 **Bundle**
-Preis auf Anfrage
 • Bot + Server
 • Rabattierter Gesamtpreis
-• Perfekt abgestimmt
+Preis auf Anfrage
 
 ⭐ **Extras**
-Preis individuell
 • Zusatzfunktionen
-• Spezial Features
 • Erweiterungen möglich
+Preis individuell
 
 ━━━━━━━━━━━━━━━━━━━━
 • Hochwertige Entwicklung
 • Schneller Support
 • Sicher & zuverlässig
 `)
+
         .setColor("Gold");
 
       return interaction.reply({ embeds: [embed] });
 
     }
 
-
-    // ===== SUPPORT PANEL =====
-
-    if (interaction.commandName === "support") {
-
-      const embed = new EmbedBuilder()
-        .setTitle("🆘 Support")
-        .setDescription("Klicke unten um ein Support Ticket zu öffnen.")
-        .setColor("Red");
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("support")
-          .setLabel("Support Ticket")
-          .setStyle(ButtonStyle.Danger)
-      );
-
-      return interaction.reply({ embeds: [embed], components: [row] });
-
-    }
-
   }
 
 
-  // ================= BUTTONS =================
+
+  /* ========= BUTTONS ========= */
 
   if (interaction.isButton()) {
 
     if (interaction.customId === "bot")
-      return createTicket(interaction, `bot-${interaction.user.username}`, "Bot Einrichtung", KAUF_KATEGORIE_ID);
+      return createTicket(interaction, `bot-${interaction.user.username}`, "Bot Einrichtung", KAUF_KATEGORIE_ID, true);
 
     if (interaction.customId === "server")
-      return createTicket(interaction, `server-${interaction.user.username}`, "Server Einrichtung", KAUF_KATEGORIE_ID);
+      return createTicket(interaction, `server-${interaction.user.username}`, "Server Einrichtung", KAUF_KATEGORIE_ID, true);
 
     if (interaction.customId === "bundle")
-      return createTicket(interaction, `bundle-${interaction.user.username}`, "Bundle", KAUF_KATEGORIE_ID);
+      return createTicket(interaction, `bundle-${interaction.user.username}`, "Bundle", KAUF_KATEGORIE_ID, true);
 
     if (interaction.customId === "vip")
       return createTicket(interaction, `vip-${interaction.user.username}`, "VIP", KAUF_KATEGORIE_ID);
 
-    if (interaction.customId === "support")
+    if (interaction.customId === "support_ticket")
       return createTicket(interaction, `support-${interaction.user.username}`, "Support", SUPPORT_KATEGORIE_ID);
-
-    if (interaction.customId === "close_ticket") {
-
-      if (!interaction.member.roles.cache.has(LEITUNG_ROLE_ID))
-        return interaction.reply({ content: "Keine Berechtigung", ephemeral: true });
-
-      interaction.channel.delete();
-
-    }
 
   }
 
 });
+
 
 
 client.login(TOKEN);
